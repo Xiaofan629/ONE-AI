@@ -9,7 +9,12 @@
       ></n-icon>
     </n-dropdown>
 
-    <n-modal v-model:show="showAddModal" preset="dialog" title="新增常用网站">
+    <n-modal
+      v-model:show="showAddModal"
+      :show-icon="false"
+      preset="dialog"
+      title="新增常用网站"
+    >
       <n-form :model="formState">
         <n-form-item label="网站名称" path="name">
           <n-input v-model:value="formState.name" placeholder="例如：掘金" />

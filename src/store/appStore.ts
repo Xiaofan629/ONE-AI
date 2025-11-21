@@ -84,9 +84,7 @@ export const useAppStore = defineStore("app", {
     // 默认激活第一个 single 类型的面板
     let initialActivePaneId: string | null = null;
     if (splitLayout.type === "split" && splitLayout.children?.length) {
-      const firstSingle = splitLayout.children.find(
-        (p) => p.type === "single"
-      );
+      const firstSingle = splitLayout.children.find((p) => p.type === "single");
       initialActivePaneId = firstSingle ? firstSingle.id : null;
     }
 
@@ -311,31 +309,35 @@ export const useAppStore = defineStore("app", {
      */
     openWebsiteWithSplit(app: App): "ok" {
       // 如果相同网站已打开（按 id 或 URL 去重）：刷新 + 激活对应 tab 和 pane
-      const existingTab = this.findExistingTabByApp(app);
-      if (existingTab) {
-        // 同样确保 tab 绑定到某个面板
-        this.ensureTabInActivePane(existingTab.id, true);
+      // const existingTab = this.findExistingTabByApp(app);
+      // if (existingTab) {
+      //   // 同样确保 tab 绑定到某个面板
+      //   this.ensureTabInActivePane(existingTab.id, true);
 
-        this.activeTabId = existingTab.id;
-        const pane = this.findPaneByTabId(existingTab.id);
-        if (pane) {
-          this.activePaneId = pane.id;
-        }
-        this.refreshTab(existingTab.id);
-        return "ok";
-      }
+      //   this.activeTabId = existingTab.id;
+      //   const pane = this.findPaneByTabId(existingTab.id);
+      //   if (pane) {
+      //     this.activePaneId = pane.id;
+      //   }
+      //   this.refreshTab(existingTab.id);
+      //   return "ok";
+      // }
 
       const layout = this.getSplitLayout as SplitPane;
-      if (layout.type !== "split" || !layout.children || !layout.children.length) {
+      if (
+        layout.type !== "split" ||
+        !layout.children ||
+        !layout.children.length
+      ) {
         return "ok";
       }
 
       const children = layout.children;
 
       // 1. 优先找空白面板
-      let targetPane = children.find(
-        (p) => p.type === "single" && !p.tabId
-      ) as SplitPane | undefined;
+      let targetPane = children.find((p) => p.type === "single" && !p.tabId) as
+        | SplitPane
+        | undefined;
 
       // 2. 没有空白面板时，使用当前激活面板
       if (!targetPane) {
@@ -540,22 +542,23 @@ export const useAppStore = defineStore("app", {
         "📋 [appStore] 所有可用配置:",
         Array.from(this.appSearchConfigs.keys())
       );
-      
+
       // 优先使用应用特定配置，否则使用默认配置
       let config = this.appSearchConfigs.get(lowerAppId);
       if (!config) {
         config = this.appSearchConfigs.get("default");
       }
-      
+
       // 如果连默认配置都没有，返回一个基本配置
       if (!config) {
         console.warn("⚠️ [appStore] 未找到配置，使用回退配置");
         config = {
-          inputSelector: "textarea, input[type='text'], div[contenteditable='true']",
-          submitMethod: "enter"
+          inputSelector:
+            "textarea, input[type='text'], div[contenteditable='true']",
+          submitMethod: "enter",
         };
       }
-      
+
       console.log("✅ [appStore] 找到的配置:", config);
       return config;
     },
