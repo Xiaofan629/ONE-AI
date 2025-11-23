@@ -330,10 +330,37 @@ export const APP_NEW_SESSION_SELECTORS: Record<string, string[]> = {
     ':navigate-to("/chats/new")',
   ],
 
-  // OpenAI - 通过 aria-label 和 data-testid 查找
+  // OpenAI - ChatGPT 新建会话按钮（实际是一个 <a> 标签）
   openai: [
+    '[data-testid="create-new-chat-button"]',
+    'a[data-testid="create-new-chat-button"]',
+    ':scope-text("新聊天")',
+    ':scope-text("New chat")',
+    'a[href="/"]',
+  ],
+
+  // Grok - 侧边栏的新建聊天按钮
+  grok: [
+    'a[data-sidebar="menu-button"][href="/"]',
+    'a[href="/"][data-sidebar="menu-button"]',
+    ':scope-text("聊天")',
+    ':scope-text("Chat")',
+    'a[href="/"]',
+  ],
+
+  // Gemini - 侧边栏的新建对话按钮
+  gemini: [
+    'button[data-test-id="expanded-button"]',
+    'button[aria-label="发起新对话"]',
+    'button[aria-label*="新对话"]',
+    ':scope-text("发起新对话")',
+    'button[aria-label="New chat"]',
     'button[aria-label*="New chat"]',
-    '[data-testid="new-chat-button"]',
+  ],
+
+  // lmarena - 直接导航到新建会话页面
+  lmarena: [
+    ':navigate-to("/c/new?mode=direct&chat-modality=chat")',
   ],
 
   // 默认配置 - 通用的查找方式
