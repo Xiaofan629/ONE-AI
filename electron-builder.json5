@@ -38,4 +38,12 @@
     createStartMenuShortcut: true,
     shortcutName: "ONEAI",
   },
+
+  publish: [
+    {
+      provider: "github",
+      owner: "zero2one-creator",
+      repo: "ONE-AI",
+    },
+  ],
 }

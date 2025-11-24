@@ -1,4 +1,5 @@
-import { app, BrowserWindow, globalShortcut, shell } from "electron";
+import { app, BrowserWindow, globalShortcut, shell, dialog } from "electron";
+import { autoUpdater } from "electron-updater";
 import installExtension, { VUEJS_DEVTOOLS } from "electron-devtools-installer";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -134,4 +135,36 @@ app.whenReady().then(async () => {
   await openDevTools();
   console.log("🚀 Application started");
   createWindow();
+
+  // 自动更新：检查 GitHub Releases 上的新版本
+  try {
+    autoUpdater.checkForUpdatesAndNotify();
+
+    autoUpdater.on("error", (error) => {
+      console.error("❌ Auto update error:", (error as Error).message);
+    });
+
+    autoUpdater.on("update-available", (info) => {
+      console.log("⬆️ Update available:", info.version);
+    });
+
+    autoUpdater.on("update-downloaded", () => {
+      dialog
+        .showMessageBox({
+          type: "info",
+          buttons: ["立即重启", "稍后"],
+          defaultId: 0,
+          cancelId: 1,
+          title: "发现新版本",
+          message: "新版本已下载，是否立即重启并安装更新？",
+        })
+        .then((result) => {
+          if (result.response === 0) {
+            autoUpdater.quitAndInstall();
+          }
+        });
+    });
+  } catch (error) {
+    console.error("❌ Failed to init auto updater:", (error as Error).message);
+  }
 });
