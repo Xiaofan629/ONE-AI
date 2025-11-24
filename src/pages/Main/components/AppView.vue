@@ -555,9 +555,33 @@ const generateNewSessionScript = (appId: string): string => {
   return `
     (async function() {
       try {
-        console.log('🆕 开始执行新建会话脚本...');
-        console.log('📍 当前 URL:', window.location.href);
-        console.log('📍 appId:', '${appId}');
+        // 辅助函数：向上查找可点击的父元素
+        function findClickableParent(element, maxDepth = 10) {
+          let current = element;
+          let depth = 0;
+          
+          while (current && depth < maxDepth) {
+            const style = window.getComputedStyle(current);
+            const isClickable = 
+              current.tagName === 'BUTTON' ||
+              current.tagName === 'A' ||
+              current.getAttribute('role') === 'button' ||
+              current.onclick !== null ||
+              style.cursor === 'pointer' ||
+              current.getAttribute('data-testid') ||
+              current.hasAttribute('data-v-') ||
+              current.hasAttribute('data-spm-click');
+            
+            if (isClickable) {
+              return current;
+            }
+            
+            current = current.parentElement;
+            depth++;
+          }
+          
+          return null;
+        }
         
         // 尝试查找新建会话按钮
         const selectors = ${JSON.stringify(selectors)};
@@ -569,14 +593,9 @@ const generateNewSessionScript = (appId: string): string => {
             const match = selector.match(/:navigate-to\\("([^"]+)"\\)/);
             if (match) {
               const [, path] = match;
-              console.log('🔍 处理 :navigate-to() 选择器，目标路径:', path);
-              
               const currentOrigin = window.location.origin;
               const targetUrl = currentOrigin + path;
-              
-              console.log('🌐 导航到:', targetUrl);
               window.location.href = targetUrl;
-              
               return { success: true, message: '通过导航创建新会话' };
             }
           }
@@ -585,42 +604,11 @@ const generateNewSessionScript = (appId: string): string => {
             const match = selector.match(/^(\w+):has\(([^)]+)\)$/);
             if (match) {
               const [, tag, innerSelector] = match;
-              console.log('🔍 处理 :has() 选择器:', tag, 'has', innerSelector);
-              
               const candidates = Array.from(document.querySelectorAll(tag));
               const element = candidates.find(el => el.querySelector(innerSelector));
               
               if (element) {
-                console.log('✅ 找到匹配 :has() 的元素:', element);
-                
-                // 检查元素是否可点击（增加深度到10层）
-                let clickable = element;
-                let depth = 0;
-                while (clickable && depth < 10) {
-                  const style = window.getComputedStyle(clickable);
-                  const isClickable = 
-                    clickable.tagName === 'BUTTON' ||
-                    clickable.tagName === 'A' ||
-                    clickable.getAttribute('role') === 'button' ||
-                    clickable.onclick !== null ||
-                    style.cursor === 'pointer';
-                  
-                  if (isClickable) {
-                    button = clickable;
-                    console.log('✅ 找到可点击的元素:', button, 'depth:', depth);
-                    break;
-                  }
-                  
-                  clickable = clickable.parentElement;
-                  depth++;
-                }
-                
-                // 如果找不到可点击的父元素，尝试直接使用找到的元素
-                if (!button && element) {
-                  console.log('⚠️ 未找到明显可点击的父元素，尝试直接点击元素');
-                  button = element;
-                }
-                
+                button = findClickableParent(element) || element;
                 if (button) break;
               }
             }
@@ -630,11 +618,10 @@ const generateNewSessionScript = (appId: string): string => {
             const match = selector.match(/:scope-text\\("([^"]+)"\\)/);
             if (match) {
               const [, text] = match;
-              console.log('🔍 查找文本:', text);
               
               // 查找包含文本的所有元素
               const allElements = Array.from(document.querySelectorAll('*'));
-              const targetElement = allElements.find(el => {
+              const matchingElements = allElements.filter(el => {
                 // 只匹配直接文本内容或仅有少量子元素的元素
                 const directText = Array.from(el.childNodes)
                   .filter(node => node.nodeType === Node.TEXT_NODE)
@@ -643,41 +630,13 @@ const generateNewSessionScript = (appId: string): string => {
                 return el.textContent?.trim() === text || directText === text;
               });
               
+              // 优先选择可见的元素
+              const targetElement = matchingElements.find(el => 
+                el.offsetWidth > 0 && el.offsetHeight > 0
+              ) || matchingElements[0];
+              
               if (targetElement) {
-                console.log('✅ 找到包含文本的元素:', targetElement);
-                
-                // 向上查找可点击的父元素（增加深度到10层）
-                let clickableParent = targetElement;
-                let depth = 0;
-                while (clickableParent && depth < 10) {
-                  const style = window.getComputedStyle(clickableParent);
-                  const isClickable = 
-                    clickableParent.tagName === 'BUTTON' ||
-                    clickableParent.tagName === 'A' ||
-                    clickableParent.getAttribute('role') === 'button' ||
-                    clickableParent.onclick !== null ||
-                    style.cursor === 'pointer' ||
-                    clickableParent.getAttribute('data-testid') ||
-                    // 检查是否有事件监听器（通过检查常见的事件属性）
-                    clickableParent.hasAttribute('data-v-') ||
-                    clickableParent.hasAttribute('data-spm-click');
-                  
-                  if (isClickable) {
-                    button = clickableParent;
-                    console.log('✅ 找到可点击的父元素:', button, 'depth:', depth);
-                    break;
-                  }
-                  
-                  clickableParent = clickableParent.parentElement;
-                  depth++;
-                }
-                
-                // 如果还是找不到可点击的父元素，尝试直接点击找到的文本元素
-                if (!button && targetElement) {
-                  console.log('⚠️ 未找到明显可点击的父元素，尝试直接点击文本元素');
-                  button = targetElement;
-                }
-                
+                button = findClickableParent(targetElement) || targetElement;
                 if (button) break;
               }
             }
@@ -689,10 +648,7 @@ const generateNewSessionScript = (appId: string): string => {
               const [, tag, text] = match;
               const elements = Array.from(document.querySelectorAll(tag));
               button = elements.find(el => el.textContent?.includes(text));
-              if (button) {
-                console.log('✅ 找到新建会话按钮（文本匹配）:', selector, button);
-                break;
-              }
+              if (button) break;
             }
           } 
           // 普通 CSS 选择器（包括 button.class, .class, #id, [attr] 等）
@@ -700,68 +656,23 @@ const generateNewSessionScript = (appId: string): string => {
             try {
               const element = document.querySelector(selector);
               if (element) {
-                console.log('✅ 找到元素（CSS 选择器）:', selector, element);
-                
-                // 如果元素本身不可点击，向上查找可点击的父元素
-                let clickable = element;
-                let depth = 0;
-                while (clickable && depth < 5) {
-                  const style = window.getComputedStyle(clickable);
-                  const isClickable = 
-                    clickable.tagName === 'BUTTON' ||
-                    clickable.tagName === 'A' ||
-                    clickable.getAttribute('role') === 'button' ||
-                    clickable.onclick !== null ||
-                    style.cursor === 'pointer';
-                  
-                  if (isClickable) {
-                    button = clickable;
-                    console.log('✅ 找到可点击的元素:', button, 'depth:', depth);
-                    break;
-                  }
-                  
-                  clickable = clickable.parentElement;
-                  depth++;
-                }
-                
+                // 如果元素本身不可点击，向上查找可点击的父元素（最多5层）
+                button = findClickableParent(element, 5);
                 if (button) break;
               }
             } catch (error) {
-              console.warn('❌ 选择器错误:', selector, error);
+              console.warn('选择器错误:', selector, error.message);
             }
           }
         }
         
         if (!button) {
-          console.warn('❌ 未找到新建会话按钮，尝试的选择器:', selectors);
-          console.log('💡 页面上包含"新对话"文本的元素:', 
-            Array.from(document.querySelectorAll('*'))
-              .filter(el => el.textContent?.trim() === '新对话')
-              .map(b => ({
-                tag: b.tagName,
-                text: b.textContent?.trim(),
-                className: b.className?.substring(0, 100),
-                isClickable: b.tagName === 'BUTTON' || 
-                             b.tagName === 'A' || 
-                             b.getAttribute('role') === 'button' ||
-                             b.onclick !== null ||
-                             window.getComputedStyle(b).cursor === 'pointer'
-              }))
-          );
-          console.log('💡 页面上的 button.new-chat-btn:', 
-            Array.from(document.querySelectorAll('button.new-chat-btn')).map(b => ({
-              text: b.textContent?.trim(),
-              className: b.className?.substring(0, 100)
-            }))
-          );
-          
           // 检查是否有 :fallback-navigate 备选方案
           const fallbackNavigate = selectors.find(s => s.includes(':fallback-navigate('));
           if (fallbackNavigate) {
             const match = fallbackNavigate.match(/:fallback-navigate\\("([^"]+)"\\)/);
             if (match) {
               const [, path] = match;
-              console.log('💡 使用备选方案：导航到', path);
               const targetUrl = window.location.origin + path;
               window.location.href = targetUrl;
               return { success: true, message: '通过备选导航创建新会话' };
@@ -772,7 +683,6 @@ const generateNewSessionScript = (appId: string): string => {
           if ('${appId}' === 'dashscope') {
             const currentUrl = window.location.href;
             if (currentUrl.includes('/chat/')) {
-              console.log('💡 尝试通过导航到 /chat 页面创建新会话...');
               window.location.href = window.location.origin + '/chat';
               return { success: true, message: '通过导航创建新会话' };
             }
@@ -781,10 +691,7 @@ const generateNewSessionScript = (appId: string): string => {
           return { success: false, message: '未找到新建会话按钮' };
         }
         
-        console.log('🖱️ 点击新建会话按钮...', button);
         button.click();
-        
-        console.log('✅ 新建会话成功');
         return { success: true };
       } catch (error) {
         console.error('❌ 新建会话失败:', error);
@@ -804,33 +711,21 @@ const generateNewSessionScript = (appId: string): string => {
 const executeNewSession = async () => {
   const webview = webviewRef.value as any;
   if (!webview || !tab.value) {
-    console.warn("⚠️ [AppView] webview 或 tab 不存在");
     return;
   }
 
   try {
-    console.log("🆕 [AppView] 开始新建会话:", {
-      appId: tab.value.app.id,
-      appName: tab.value.app.name,
-      paneId: props.paneId,
-      webviewSrc: webview.src,
-      webviewReady: webview.getWebContentsId ? true : false,
-    });
-
     // 等待 webview 加载完成（避免在页面未加载时执行脚本）
     const isLoading = webview.isLoading();
     if (isLoading) {
-      console.log("⏳ [AppView] webview 正在加载，等待加载完成...");
       await new Promise<void>((resolve) => {
         const loadHandler = () => {
-          console.log("✅ [AppView] webview 加载完成");
           webview.removeEventListener("did-finish-load", loadHandler);
           resolve();
         };
         webview.addEventListener("did-finish-load", loadHandler);
         // 设置超时避免无限等待
         setTimeout(() => {
-          console.warn("⚠️ [AppView] 等待 webview 加载超时");
           webview.removeEventListener("did-finish-load", loadHandler);
           resolve();
         }, 5000);
@@ -839,18 +734,13 @@ const executeNewSession = async () => {
 
     // 生成并执行新建会话脚本
     const script = generateNewSessionScript(tab.value.app.id);
-    console.log("📝 [AppView] 执行脚本，appId:", tab.value.app.id);
-    
     const result = await webview.executeJavaScript(script);
-
-    console.log("📊 [AppView] 新建会话结果:", result);
     
     if (result && !result.success) {
-      console.error("❌ [AppView] 新建会话失败（脚本返回）:", result.message);
+      console.error("[AppView] 新建会话失败:", result.message);
     }
   } catch (error) {
-    console.error("❌ [AppView] 新建会话失败（异常）:", error);
-    console.error("错误堆栈:", (error as Error).stack);
+    console.error("[AppView] 新建会话失败:", (error as Error).message);
   }
 };
 
@@ -861,55 +751,21 @@ const executeNewSession = async () => {
  * 每个 AppView 组件会检查事件的 paneId 是否匹配自己，匹配则执行新建会话操作
  */
 const handleNewSessionEvent = (event: CustomEvent) => {
-  console.log("📨 [AppView] 收到 new-session-pane 事件:", {
-    eventPaneId: event.detail.paneId,
-    myPaneId: props.paneId,
-    hasTab: !!tab.value,
-    tabName: tab.value?.app.name,
-  });
-
   const { paneId } = event.detail;
-  if (paneId === props.paneId) {
-    if (tab.value) {
-      console.log("✅ [AppView] paneId 匹配，执行新建会话");
-      executeNewSession();
-    } else {
-      console.warn("⚠️ [AppView] paneId 匹配但没有 tab");
-    }
-  } else {
-    console.log("⏭️ [AppView] paneId 不匹配，跳过");
+  if (paneId === props.paneId && tab.value) {
+    executeNewSession();
   }
 };
 
 // 监听搜索事件
 const handleSearchEvent = (event: CustomEvent) => {
-  console.log("📨 [AppView] 收到 search-pane 事件:", {
-    eventPaneId: event.detail.paneId,
-    myPaneId: props.paneId,
-    searchText: event.detail.searchText,
-    hasTab: !!tab.value,
-    tabName: tab.value?.app.name,
-  });
-
   const { paneId, searchText, config } = event.detail;
-  if (paneId === props.paneId) {
-    if (tab.value) {
-      console.log("✅ [AppView] paneId 匹配，执行搜索");
-      executeSearch(searchText, config as AppSearchConfig);
-    } else {
-      console.warn("⚠️ [AppView] paneId 匹配但没有 tab");
-    }
-  } else {
-    console.log("⏭️ [AppView] paneId 不匹配，跳过");
+  if (paneId === props.paneId && tab.value) {
+    executeSearch(searchText, config as AppSearchConfig);
   }
 };
 
 onMounted(() => {
-  console.log("🔌 [AppView] 组件挂载，注册事件监听器:", {
-    paneId: props.paneId,
-    tabId: props.tabId,
-    tabName: tab.value?.app.name,
-  });
   window.addEventListener("search-pane", handleSearchEvent as EventListener);
   window.addEventListener("refresh-pane", handleRefreshEvent as EventListener);
   window.addEventListener(
@@ -953,13 +809,10 @@ onMounted(() => {
     webview.addEventListener("did-finish-load", () => {
       webview.clearHistory();
     });
-
-    console.log("✅ [AppView] webview 事件监听器已注册");
   }
 });
 
 onUnmounted(() => {
-  console.log("🔌 [AppView] 组件卸载，移除事件监听器:", props.paneId);
   window.removeEventListener("search-pane", handleSearchEvent as EventListener);
   window.removeEventListener(
     "refresh-pane",
