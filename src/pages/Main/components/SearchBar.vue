@@ -189,9 +189,9 @@ const onSplitHorizontal = () => {
     display: flex;
     align-items: center;
     gap: 10px;
-    width: 400px;
-    max-width: 30%;
-    flex-shrink: 0;
+    flex: 1;
+    min-width: 400px;
+    max-width: 800px;
   }
 
   .toolbar-spacer {
@@ -203,6 +203,7 @@ const onSplitHorizontal = () => {
     align-items: center;
     gap: 4px;
     margin-right: -4px; // 让图标整体更贴近右侧
+    flex-shrink: 0; // 确保右侧工具栏始终可见
 
     .icon-button {
       width: 28px;

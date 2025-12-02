@@ -225,6 +225,9 @@ const handleSearch = async () => {
     &::placeholder {
       color: rgba(142, 142, 147, 0.6);
       font-weight: 400;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     /* 自定义滚动条 */
