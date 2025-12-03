@@ -4,17 +4,13 @@
 -->
 <template>
   <Teleport to="body">
-    <div
-      v-if="visible"
-      class="history-modal-backdrop"
-      @click="closeModal"
-    >
+    <div v-if="visible" class="history-modal-backdrop" @click="closeModal">
       <div class="history-modal" @click.stop>
         <div class="modal-header">
           <span class="modal-title">历史记录</span>
           <button class="close-button" @click="closeModal">×</button>
         </div>
-        
+
         <div class="modal-content">
           <!-- 加载状态 -->
           <div v-if="loading" class="loading-state">
@@ -40,12 +36,16 @@
                 class="history-item"
               >
                 <div class="history-content" @click="toggleExpand(item.id)">
-                  <div class="history-text" :class="{ expanded: expandedIds.has(item.id) }">
+                  <div
+                    class="history-text"
+                    :class="{ expanded: expandedIds.has(item.id) }"
+                  >
                     {{ item.text }}
-                  
                   </div>
                   <div class="history-meta">
-                    <span class="history-time">{{ formatTime(item.createdAt) }}</span>
+                    <span class="history-time">{{
+                      formatTime(item.createdAt)
+                    }}</span>
                     <div class="history-actions">
                       <n-button
                         text
@@ -194,7 +194,7 @@ watch(visible, (newVal) => {
   height: 600px;
   max-height: 90vh;
   background-color: #ffffff;
-  border-radius: 16px;
+  border-radius: 12px;
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
@@ -260,7 +260,7 @@ watch(visible, (newVal) => {
   @apply flex flex-col items-center justify-center;
   flex: 1;
   gap: 12px;
-  
+
   .loading-text {
     color: #8e8e93;
     font-size: 14px;
@@ -276,7 +276,7 @@ watch(visible, (newVal) => {
   flex: 1;
   overflow-y: auto;
   padding: 20px 24px;
-  
+
   /* 自定义滚动条 */
   &::-webkit-scrollbar {
     width: 8px;
@@ -327,20 +327,20 @@ watch(visible, (newVal) => {
   white-space: pre-wrap;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
     "Helvetica Neue", Helvetica, Arial, sans-serif;
-  
+
   // 默认截断显示
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  
+
   // 展开状态
   &.expanded {
     display: block;
     -webkit-line-clamp: unset;
     max-height: 300px;
     overflow-y: auto;
-    
+
     // 自定义滚动条
     &::-webkit-scrollbar {
       width: 6px;

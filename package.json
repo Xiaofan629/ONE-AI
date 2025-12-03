@@ -6,6 +6,7 @@
   "scripts": {
     "cdev": "node scripts/clean-dev.mjs",
     "dev": "yarn cdev && vite",
+    "dev:electron": "electron .",
     "crelease": "node scripts/clean-release.mjs",
     "build": "yarn crelease && vite build && electron-builder",
     "build:mac": "yarn crelease && vite build && electron-builder --mac",

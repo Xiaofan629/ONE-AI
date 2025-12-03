@@ -16,6 +16,12 @@ const themeOverrides: GlobalThemeOverrides = {
   Dialog: {
     borderRadius: "12px",
   },
+  Modal: {
+    borderRadius: "12px",
+  },
+  Card: {
+    borderRadius: "12px",
+  },
 };
 </script>
 

@@ -54,3 +54,45 @@ contextBridge.exposeInMainWorld("historyAPI", {
   // 清空所有历史记录
   clear: (): Promise<HistoryResult> => ipcRenderer.invoke("history:clear"),
 });
+
+// --------- Prompt 预设 API ---------
+// Prompt 预设数据结构（与 main.ts 保持一致）
+interface PromptPreset {
+  id: string;
+  title: string;
+  content: string;
+  category?: string;
+  tags?: string[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+interface PromptResult {
+  success: boolean;
+  message?: string;
+  preset?: PromptPreset;
+}
+
+contextBridge.exposeInMainWorld("promptAPI", {
+  // 获取所有 prompt 预设
+  getAll: (): Promise<PromptPreset[]> => ipcRenderer.invoke("prompt:getAll"),
+
+  // 添加 prompt 预设
+  add: (
+    preset: Omit<PromptPreset, "id" | "createdAt" | "updatedAt">
+  ): Promise<PromptResult> => ipcRenderer.invoke("prompt:add", preset),
+
+  // 更新 prompt 预设
+  update: (
+    id: string,
+    updates: Partial<Omit<PromptPreset, "id" | "createdAt">>
+  ): Promise<PromptResult> => ipcRenderer.invoke("prompt:update", id, updates),
+
+  // 删除 prompt 预设
+  delete: (id: string): Promise<PromptResult> =>
+    ipcRenderer.invoke("prompt:delete", id),
+
+  // 搜索 prompt 预设
+  search: (query: string): Promise<PromptPreset[]> =>
+    ipcRenderer.invoke("prompt:search", query),
+});

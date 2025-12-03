@@ -15,9 +15,9 @@ declare namespace NodeJS {
      * │
      * ```
      */
-    APP_ROOT: string
+    APP_ROOT: string;
     /** /dist/ or /public/ */
-    VITE_PUBLIC: string
+    VITE_PUBLIC: string;
   }
 }
 
@@ -42,8 +42,40 @@ interface HistoryAPI {
   clear: () => Promise<HistoryResult>;
 }
 
+// Prompt 预设数据结构
+interface PromptPreset {
+  id: string;
+  title: string;
+  content: string;
+  category?: string;
+  tags?: string[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+interface PromptResult {
+  success: boolean;
+  message?: string;
+  preset?: PromptPreset;
+}
+
+// Prompt 预设 API 接口
+interface PromptAPI {
+  getAll: () => Promise<PromptPreset[]>;
+  add: (
+    preset: Omit<PromptPreset, "id" | "createdAt" | "updatedAt">
+  ) => Promise<PromptResult>;
+  update: (
+    id: string,
+    updates: Partial<Omit<PromptPreset, "id" | "createdAt">>
+  ) => Promise<PromptResult>;
+  delete: (id: string) => Promise<PromptResult>;
+  search: (query: string) => Promise<PromptPreset[]>;
+}
+
 // Used in Renderer process, expose in `preload.ts`
 interface Window {
-  ipcRenderer: import('electron').IpcRenderer;
+  ipcRenderer: import("electron").IpcRenderer;
   historyAPI: HistoryAPI;
+  promptAPI: PromptAPI;
 }

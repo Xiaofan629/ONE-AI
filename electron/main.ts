@@ -23,6 +23,26 @@ const historyStore = new Store<{ searchHistory: HistoryRecord[] }>({
   },
 });
 
+// ==================== Prompt 预设存储 ====================
+// Prompt 预设数据结构
+interface PromptPreset {
+  id: string;
+  title: string;
+  content: string;
+  category?: string;
+  tags?: string[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+// 初始化 electron-store 用于存储 prompt 预设
+const promptStore = new Store<{ prompts: PromptPreset[] }>({
+  name: "prompt-presets",
+  defaults: {
+    prompts: [],
+  },
+});
+
 // 历史记录最大条数
 const MAX_HISTORY_COUNT = 1000;
 
@@ -79,6 +99,104 @@ ipcMain.handle("history:delete", (_event, id: string) => {
 ipcMain.handle("history:clear", () => {
   historyStore.set("searchHistory", []);
   return { success: true };
+});
+
+// ==================== Prompt 预设 IPC 通道 ====================
+
+// IPC 通道：获取所有 prompt 预设
+ipcMain.handle("prompt:getAll", () => {
+  const prompts = promptStore.get("prompts", []);
+  // 按更新时间倒序返回
+  return [...prompts].sort((a, b) => b.updatedAt - a.updatedAt);
+});
+
+// IPC 通道：添加 prompt 预设
+ipcMain.handle(
+  "prompt:add",
+  (_event, preset: Omit<PromptPreset, "id" | "createdAt" | "updatedAt">) => {
+    if (!preset.title || !preset.title.trim()) {
+      return { success: false, message: "标题不能为空" };
+    }
+    if (!preset.content || !preset.content.trim()) {
+      return { success: false, message: "内容不能为空" };
+    }
+
+    const prompts = promptStore.get("prompts", []);
+    const newPreset: PromptPreset = {
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      title: preset.title.trim(),
+      content: preset.content.trim(),
+      category: preset.category,
+      tags: preset.tags || [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    prompts.push(newPreset);
+    promptStore.set("prompts", prompts);
+    return { success: true, preset: newPreset };
+  }
+);
+
+// IPC 通道：更新 prompt 预设
+ipcMain.handle(
+  "prompt:update",
+  (
+    _event,
+    id: string,
+    updates: Partial<Omit<PromptPreset, "id" | "createdAt">>
+  ) => {
+    const prompts = promptStore.get("prompts", []);
+    const index = prompts.findIndex((item) => item.id === id);
+
+    if (index === -1) {
+      return { success: false, message: "预设不存在" };
+    }
+
+    prompts[index] = {
+      ...prompts[index],
+      ...updates,
+      updatedAt: Date.now(),
+    };
+
+    promptStore.set("prompts", prompts);
+    return { success: true, preset: prompts[index] };
+  }
+);
+
+// IPC 通道：删除 prompt 预设
+ipcMain.handle("prompt:delete", (_event, id: string) => {
+  const prompts = promptStore.get("prompts", []);
+  const index = prompts.findIndex((item) => item.id === id);
+
+  if (index === -1) {
+    return { success: false, message: "预设不存在" };
+  }
+
+  prompts.splice(index, 1);
+  promptStore.set("prompts", prompts);
+  return { success: true };
+});
+
+// IPC 通道：搜索 prompt 预设（支持标题和内容的模糊搜索）
+ipcMain.handle("prompt:search", (_event, query: string) => {
+  const prompts = promptStore.get("prompts", []);
+
+  if (!query || !query.trim()) {
+    return [...prompts].sort((a, b) => b.updatedAt - a.updatedAt);
+  }
+
+  const lowercaseQuery = query.toLowerCase().trim();
+  const filtered = prompts.filter((preset) => {
+    const titleMatch = preset.title.toLowerCase().includes(lowercaseQuery);
+    const contentMatch = preset.content.toLowerCase().includes(lowercaseQuery);
+    const tagMatch = preset.tags?.some((tag) =>
+      tag.toLowerCase().includes(lowercaseQuery)
+    );
+    return titleMatch || contentMatch || tagMatch;
+  });
+
+  return filtered.sort((a, b) => b.updatedAt - a.updatedAt);
 });
 
 // 添加崩溃处理
@@ -169,40 +287,40 @@ async function createWindow() {
 // OAuth 登录相关的域名白名单（这些域名的弹窗需要在应用内打开）
 const OAUTH_DOMAINS = [
   // ============ 国际通用 OAuth 提供商 ============
-  "accounts.google.com",      // Google 登录
+  "accounts.google.com", // Google 登录
   "login.microsoftonline.com", // Microsoft 登录
-  "login.live.com",           // Microsoft Live
-  "appleid.apple.com",        // Apple 登录
-  "github.com",               // GitHub 登录
-  "auth0.com",                // Auth0
-  "x.com",                    // X/Twitter 登录 (Grok)
-  "twitter.com",              // Twitter 登录
+  "login.live.com", // Microsoft Live
+  "appleid.apple.com", // Apple 登录
+  "github.com", // GitHub 登录
+  "auth0.com", // Auth0
+  "x.com", // X/Twitter 登录 (Grok)
+  "twitter.com", // Twitter 登录
 
   // ============ 中国主流 OAuth 提供商 ============
   // 微信系
-  "open.weixin.qq.com",       // 微信开放平台
-  "wx.qq.com",                // 微信
-  "weixin.qq.com",            // 微信
+  "open.weixin.qq.com", // 微信开放平台
+  "wx.qq.com", // 微信
+  "weixin.qq.com", // 微信
   // QQ 系
-  "graph.qq.com",             // QQ 互联
-  "connect.qq.com",           // QQ 登录
-  "ssl.ptlogin2.qq.com",      // QQ 安全登录
-  "xui.ptlogin2.qq.com",      // QQ 登录
-  "ui.ptlogin2.qq.com",       // QQ 登录
+  "graph.qq.com", // QQ 互联
+  "connect.qq.com", // QQ 登录
+  "ssl.ptlogin2.qq.com", // QQ 安全登录
+  "xui.ptlogin2.qq.com", // QQ 登录
+  "ui.ptlogin2.qq.com", // QQ 登录
   // 阿里系
-  "login.taobao.com",         // 淘宝登录
-  "login.alipay.com",         // 支付宝登录
-  "authz.alipay.com",         // 支付宝授权
-  "auth.alipay.com",          // 支付宝认证
-  "passport.aliyun.com",      // 阿里云登录
+  "login.taobao.com", // 淘宝登录
+  "login.alipay.com", // 支付宝登录
+  "authz.alipay.com", // 支付宝授权
+  "auth.alipay.com", // 支付宝认证
+  "passport.aliyun.com", // 阿里云登录
   // 字节系
-  "sso.douyin.com",           // 抖音 SSO
-  "open.douyin.com",          // 抖音开放平台
-  "passport.feishu.cn",       // 飞书登录
-  "login.feishu.cn",          // 飞书登录
+  "sso.douyin.com", // 抖音 SSO
+  "open.douyin.com", // 抖音开放平台
+  "passport.feishu.cn", // 飞书登录
+  "login.feishu.cn", // 飞书登录
   // 腾讯系
-  "passport.tencent.com",     // 腾讯通行证
-  "ssl.captcha.qq.com",       // 腾讯验证码
+  "passport.tencent.com", // 腾讯通行证
+  "ssl.captcha.qq.com", // 腾讯验证码
 
   // ============ AI 应用自身的登录域名 ============
   // DeepSeek
@@ -257,7 +375,7 @@ const isOAuthUrl = (url: string): boolean => {
     const urlObj = new URL(url);
     const hostname = urlObj.hostname.toLowerCase();
     const pathname = urlObj.pathname.toLowerCase();
-    
+
     return OAUTH_DOMAINS.some(
       (domain) => hostname.includes(domain) || pathname.includes(domain)
     );
@@ -271,35 +389,41 @@ const shouldOpenExternal = (url: string): boolean => {
   try {
     const urlObj = new URL(url);
     const hostname = urlObj.hostname.toLowerCase();
-    
+
     // 如果是 OAuth 相关的 URL，不要在外部打开
     if (isOAuthUrl(url)) {
       return false;
     }
-    
+
     // 检查是否是 AI 应用的域名（不应该在外部打开）
     const aiAppDomains = [
-      "chatgpt.com", "openai.com",
-      "chat.deepseek.com", "deepseek.com",
+      "chatgpt.com",
+      "openai.com",
+      "chat.deepseek.com",
+      "deepseek.com",
       "yuanbao.tencent.com",
-      "kimi.moonshot.cn", "moonshot.cn",
+      "kimi.moonshot.cn",
+      "moonshot.cn",
       "doubao.com",
-      "qianwen.com", "tongyi.aliyun.com",
+      "qianwen.com",
+      "tongyi.aliyun.com",
       "minimaxi.com",
-      "chatglm.cn", "bigmodel.cn",
+      "chatglm.cn",
+      "bigmodel.cn",
       "baichuan-ai.com",
       "stepfun.com",
       "gemini.google.com",
       "grok.com",
       "lmarena.ai",
-      "claude.ai", "anthropic.com",
+      "claude.ai",
+      "anthropic.com",
     ];
-    
+
     // 如果是 AI 应用域名，不在外部打开
-    if (aiAppDomains.some(domain => hostname.includes(domain))) {
+    if (aiAppDomains.some((domain) => hostname.includes(domain))) {
       return false;
     }
-    
+
     return true;
   } catch {
     return false;
@@ -313,24 +437,33 @@ app.on("web-contents-created", (_event, contents) => {
 
   if (contentType === "webview") {
     console.log("📌 [main] webview 创建，设置 window open handler");
-    
+
     // 为 webview 设置正常浏览器的 User-Agent
-    const chromeUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+    const chromeUserAgent =
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
     contents.setUserAgent(chromeUserAgent);
-    
+
     // 监听 webview 导航，用于调试
     contents.on("did-start-navigation", (_event, url) => {
       console.log("🚀 [main] webview 开始导航:", url);
     });
-    
+
     contents.on("did-navigate", (_event, url) => {
       console.log("✅ [main] webview 导航完成:", url);
     });
-    
-    contents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
-      console.log("❌ [main] webview 加载失败:", errorCode, errorDescription, validatedURL);
-    });
-    
+
+    contents.on(
+      "did-fail-load",
+      (_event, errorCode, errorDescription, validatedURL) => {
+        console.log(
+          "❌ [main] webview 加载失败:",
+          errorCode,
+          errorDescription,
+          validatedURL
+        );
+      }
+    );
+
     // 拦截 webview 中通过 window.open / target=_blank 打开的新窗口
     // 只有打开新窗口的场景才使用外部浏览器打开
     contents.setWindowOpenHandler(({ url }) => {
@@ -345,14 +478,15 @@ app.on("web-contents-created", (_event, contents) => {
 
       // OAuth 或 AI 应用相关的 URL，在应用内新窗口打开
       console.log("🔐 [main] 内部链接，创建应用内窗口:", url);
-      
+
       // 获取与 webview 相同的 session（partition: persist:webview）
       const webviewSession = session.fromPartition("persist:webview");
-      
+
       // 设置正常浏览器的 User-Agent（避免被检测为非标准浏览器）
-      const chromeUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+      const chromeUserAgent =
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
       webviewSession.setUserAgent(chromeUserAgent);
-      
+
       // 创建一个新的 BrowserWindow
       const popupWindow = new BrowserWindow({
         width: 800,
@@ -366,7 +500,7 @@ app.on("web-contents-created", (_event, contents) => {
           session: webviewSession, // 共享 session
         },
       });
-      
+
       popupWindow.loadURL(url);
 
       // 处理弹窗内部的新窗口请求（递归处理）
@@ -384,23 +518,29 @@ app.on("web-contents-created", (_event, contents) => {
       // 监听页面导航，处理登录完成后的重定向回调
       popupWindow.webContents.on("will-navigate", (_event, navUrl) => {
         console.log("🔄 [main] 弹窗导航:", navUrl);
-        
+
         // 如果重定向回 AI 应用主页面，关闭弹窗
         const aiAppMainUrls = [
-          "chatgpt.com", "chat.openai.com",
+          "chatgpt.com",
+          "chat.openai.com",
           "chat.deepseek.com",
           "kimi.moonshot.cn",
         ];
         try {
           const navUrlObj = new URL(navUrl);
-          if (aiAppMainUrls.some(domain => navUrlObj.hostname.includes(domain)) && 
-              !navUrl.includes("auth") && !navUrl.includes("login")) {
+          if (
+            aiAppMainUrls.some((domain) =>
+              navUrlObj.hostname.includes(domain)
+            ) &&
+            !navUrl.includes("auth") &&
+            !navUrl.includes("login")
+          ) {
             console.log("✅ [main] 登录完成，关闭弹窗");
             setTimeout(() => popupWindow.close(), 500);
           }
         } catch {}
       });
-      
+
       return { action: "deny" };
     });
 
