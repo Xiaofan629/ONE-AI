@@ -358,9 +358,9 @@ defineExpose({
 
   .search-input {
     flex: 1;
-    min-height: 44px;
+    min-height: 38px;
     max-height: 200px;
-    padding: 12px 40px 12px 40px;
+    padding: 9px 40px 9px 40px;
     border: none;
     border-radius: 10px;
     font-size: 15px;
@@ -494,7 +494,7 @@ defineExpose({
 
 .search-button {
   padding: 0 20px;
-  height: 44px;
+  height: 38px;
   border: none;
   border-radius: 10px;
   background-color: rgba(0, 122, 255, 0.9);

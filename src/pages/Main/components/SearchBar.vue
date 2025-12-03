@@ -202,9 +202,8 @@ const onSplitHorizontal = () => {
     display: flex;
     align-items: center;
     gap: 10px;
-    flex: 1;
+    flex: 0 1 70%;
     min-width: 400px;
-    max-width: 800px;
     position: relative;
     z-index: 100; // 确保搜索容器及其下拉框在其他元素之上
     overflow: visible; // 允许下拉框溢出显示
