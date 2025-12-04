@@ -7,11 +7,25 @@
     v-model:show="visible"
     :show-icon="false"
     preset="card"
-    title="One Command"
     style="width: 900px; max-width: 95vw; height: 80vh; max-height: 700px"
     :bordered="false"
     :segmented="false"
   >
+    <template #header>
+      <div class="modal-header">
+        <span>One Command</span>
+        <n-tooltip trigger="hover">
+          <template #trigger>
+            <n-icon
+              :size="16"
+              style="margin-left: 8px; color: #999; cursor: help"
+              :component="HelpCircleOutline"
+            />
+          </template>
+          编辑 prompt 模板
+        </n-tooltip>
+      </div>
+    </template>
     <div class="prompt-container">
       <!-- 搜索和新建栏 -->
       <div class="action-bar">
@@ -30,7 +44,7 @@
           <template #icon>
             <n-icon :component="AddOutline" />
           </template>
-          新建预设
+          新建
         </n-button>
       </div>
 
@@ -217,6 +231,7 @@ import {
   CopyOutline,
   CreateOutline,
   TrashOutline,
+  HelpCircleOutline,
 } from "@vicons/ionicons5";
 import {
   getPromptList,
@@ -427,6 +442,11 @@ watch(visible, (newVal) => {
 </script>
 
 <style scoped lang="scss">
+.modal-header {
+  display: flex;
+  align-items: center;
+}
+
 .prompt-container {
   display: flex;
   flex-direction: column;

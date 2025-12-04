@@ -23,11 +23,12 @@
 
 <script setup lang="ts">
 import { h, ref } from "vue";
-import { NDropdown, NIcon } from "naive-ui";
+import { NDropdown, NIcon, NTooltip } from "naive-ui";
 import {
   SettingsOutline,
   TimeOutline,
   DocumentTextOutline,
+  HelpCircleOutline,
 } from "@vicons/ionicons5";
 import HistoryModal from "./HistoryModal.vue";
 import PromptPresetModal from "./PromptPresetModal.vue";
@@ -51,6 +52,25 @@ const renderIcon = (icon: any) => () =>
     default: () => h(icon),
   });
 
+// 渲染带提示的标签
+const renderLabelWithTooltip = (label: string, tooltip: string) => () =>
+  h("div", { style: "display: flex; align-items: center; gap: 4px;" }, [
+    h("span", label),
+    h(
+      NTooltip,
+      { trigger: "hover" },
+      {
+        default: () => tooltip,
+        trigger: () =>
+          h(
+            NIcon,
+            { size: 14, style: "color: #999; cursor: help;" },
+            { default: () => h(HelpCircleOutline) }
+          ),
+      }
+    ),
+  ]);
+
 // 下拉菜单选项
 const options = [
   {
@@ -59,7 +79,7 @@ const options = [
     icon: renderIcon(TimeOutline),
   },
   {
-    label: "One Command",
+    label: renderLabelWithTooltip("One Command", "编辑 prompt 模板"),
     key: PROMPT_KEY,
     icon: renderIcon(DocumentTextOutline),
   },
