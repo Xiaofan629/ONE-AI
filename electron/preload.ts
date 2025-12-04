@@ -55,8 +55,8 @@ contextBridge.exposeInMainWorld("historyAPI", {
   clear: (): Promise<HistoryResult> => ipcRenderer.invoke("history:clear"),
 });
 
-// --------- Prompt 预设 API ---------
-// Prompt 预设数据结构（与 main.ts 保持一致）
+// --------- One Command API ---------
+// One Command 数据结构（与 main.ts 保持一致）
 interface PromptPreset {
   id: string;
   title: string;

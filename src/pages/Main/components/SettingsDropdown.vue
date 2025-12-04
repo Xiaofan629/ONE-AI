@@ -1,6 +1,6 @@
 <!--
   SettingsDropdown.vue
-  设置下拉菜单组件，包含历史记录和 Prompt 预设两个选项
+  设置下拉菜单组件，包含历史记录和 One Command 两个选项
 -->
 <template>
   <div>
@@ -16,7 +16,7 @@
     <!-- 历史记录弹窗 -->
     <HistoryModal v-model="showHistoryModal" />
 
-    <!-- Prompt 预设弹窗 -->
+    <!-- One Command 弹窗 -->
     <PromptPresetModal v-model="showPromptModal" @select="handlePromptSelect" />
   </div>
 </template>
@@ -59,7 +59,7 @@ const options = [
     icon: renderIcon(TimeOutline),
   },
   {
-    label: "Prompt 预设",
+    label: "One Command",
     key: PROMPT_KEY,
     icon: renderIcon(DocumentTextOutline),
   },
@@ -74,7 +74,7 @@ const handleSelect = (key: string) => {
   }
 };
 
-// 处理 Prompt 预设选择
+// 处理 One Command 选择
 const handlePromptSelect = (preset: any) => {
   emit("selectPrompt", preset);
 };

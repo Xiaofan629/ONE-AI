@@ -162,7 +162,23 @@ export const useAppStore = defineStore("app", {
     },
 
     removeTab(tabId: string) {
+      // 先找到包含这个 tab 的面板
+      const pane = this.findPaneByTabId(tabId);
+
+      // 从布局中移除 tab 引用
       this.removeTabFromLayout(tabId);
+
+      // 从 tabs 数组中删除 tab
+      const tabIndex = this.tabs.findIndex((t) => t.id === tabId);
+      if (tabIndex !== -1) {
+        const removed = this.tabs[tabIndex];
+        this.tabs.splice(tabIndex, 1);
+
+        // 如果删的是当前激活 tab，切到第一个 tab
+        if (this.activeTabId === removed.id) {
+          this.activeTabId = this.tabs[0]?.id || null;
+        }
+      }
 
       // 如果该面板没有其他 tab，自动关闭面板
       // 单个面板（single）只能有一个 tab，删除后肯定为空

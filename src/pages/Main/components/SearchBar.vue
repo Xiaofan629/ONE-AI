@@ -76,7 +76,7 @@ const aiAppList = ref(
   }))
 );
 
-// 处理 Prompt 预设选择
+// 处理 One Command 选择
 const handlePromptSelect = (preset: any) => {
   if (searchInputRef.value && searchInputRef.value.setSearchText) {
     searchInputRef.value.setSearchText(preset.content);

@@ -1,11 +1,11 @@
 /**
  * promptStore.ts
- * Prompt 预设存储操作封装
+ * One Command 存储操作封装
  * 在 Electron 环境中通过 promptAPI 与主进程通信
  * 在浏览器环境中使用 localStorage 作为降级方案
  */
 
-// Prompt 预设数据结构
+// One Command 数据结构
 interface PromptPreset {
   id: string;
   title: string;

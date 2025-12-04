@@ -23,8 +23,8 @@ const historyStore = new Store<{ searchHistory: HistoryRecord[] }>({
   },
 });
 
-// ==================== Prompt 预设存储 ====================
-// Prompt 预设数据结构
+// ==================== One Command 存储 ====================
+// One Command 数据结构
 interface PromptPreset {
   id: string;
   title: string;
@@ -101,7 +101,7 @@ ipcMain.handle("history:clear", () => {
   return { success: true };
 });
 
-// ==================== Prompt 预设 IPC 通道 ====================
+// ==================== One Command IPC 通道 ====================
 
 // IPC 通道：获取所有 prompt 预设
 ipcMain.handle("prompt:getAll", () => {

@@ -42,7 +42,7 @@ interface HistoryAPI {
   clear: () => Promise<HistoryResult>;
 }
 
-// Prompt 预设数据结构
+// One Command 数据结构
 interface PromptPreset {
   id: string;
   title: string;
@@ -59,7 +59,7 @@ interface PromptResult {
   preset?: PromptPreset;
 }
 
-// Prompt 预设 API 接口
+// One Command API 接口
 interface PromptAPI {
   getAll: () => Promise<PromptPreset[]>;
   add: (

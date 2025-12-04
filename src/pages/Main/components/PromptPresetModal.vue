@@ -1,13 +1,13 @@
 <!--
   PromptPresetModal.vue
-  Prompt 预设弹窗组件
+  One Command 弹窗组件
 -->
 <template>
   <n-modal
     v-model:show="visible"
     :show-icon="false"
     preset="card"
-    title="Prompt 预设"
+    title="One Command"
     style="width: 900px; max-width: 95vw; height: 80vh; max-height: 700px"
     :bordered="false"
     :segmented="false"
