@@ -12,7 +12,7 @@
 
 这个应用使用很简单，实现也很简单，但足够实用。
 
-我们在最后提供了开发指南，如果有你喜欢的应用我们没有支持，欢迎提 issue，或者 PR
+我们在最后提供了开发指南，如果有你喜欢的应用我们没有支持，欢迎提 issue，或者 PR.
 
 希望大家喜欢☺️
 
@@ -219,10 +219,10 @@ export const APP_SEARCH_CONFIGS = [
     {
       // 输入框选择器，支持多个选择器（逗号分隔），会依次尝试
       inputSelector: "textarea, input[type='text'], div[contenteditable='true']",
-    
+  
       // 提交按钮选择器（仅 click 方式需要）
       submitSelector: "button[type='submit'], button.send-button",
-    
+  
       // 提交方式：
       // - "enter": 按回车键提交（推荐，更稳定）
       // - "click": 点击按钮提交
