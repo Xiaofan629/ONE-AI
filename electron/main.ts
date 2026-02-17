@@ -208,15 +208,16 @@ const cookieStore = new Store<{ cookies: any[] }>({
 async function injectCookies(cookies: any[]) {
   const webviewSession = session.fromPartition("persist:webview");
   for (const c of cookies) {
+    const sameSite = c.sameSite === "lax" ? "lax" : c.sameSite === "strict" ? "strict" : "no_restriction";
     const cookie: Electron.CookiesSetDetails = {
       url: `https://${c.domain?.replace(/^\./, "")}${c.path || "/"}`,
       name: c.name,
       value: c.value,
       domain: c.domain,
       path: c.path || "/",
-      secure: c.secure ?? false,
+      secure: sameSite === "no_restriction" ? true : (c.secure ?? false),
       httpOnly: c.httpOnly ?? false,
-      sameSite: c.sameSite === "lax" ? "lax" : c.sameSite === "strict" ? "strict" : "no_restriction",
+      sameSite,
     };
     if (c.expirationDate) cookie.expirationDate = c.expirationDate;
     await webviewSession.cookies.set(cookie);
