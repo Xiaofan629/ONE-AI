@@ -96,3 +96,11 @@ contextBridge.exposeInMainWorld("promptAPI", {
   search: (query: string): Promise<PromptPreset[]> =>
     ipcRenderer.invoke("prompt:search", query),
 });
+
+// --------- Cookie 导入 API ---------
+contextBridge.exposeInMainWorld("cookieAPI", {
+  import: (jsonText: string): Promise<{ success: boolean; message?: string; count?: number }> =>
+    ipcRenderer.invoke("cookie:import", jsonText),
+  clear: (): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke("cookie:clear"),
+});

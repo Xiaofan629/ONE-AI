@@ -199,6 +199,47 @@ ipcMain.handle("prompt:search", (_event, query: string) => {
   return filtered.sort((a, b) => b.updatedAt - a.updatedAt);
 });
 
+// ==================== Cookie 导入 ====================
+const cookieStore = new Store<{ cookies: any[] }>({
+  name: "imported-cookies",
+  defaults: { cookies: [] },
+});
+
+async function injectCookies(cookies: any[]) {
+  const webviewSession = session.fromPartition("persist:webview");
+  for (const c of cookies) {
+    const sameSite = c.sameSite === "lax" ? "lax" : c.sameSite === "strict" ? "strict" : "no_restriction";
+    const cookie: Electron.CookiesSetDetails = {
+      url: `https://${c.domain?.replace(/^\./, "")}${c.path || "/"}`,
+      name: c.name,
+      value: c.value,
+      domain: c.domain,
+      path: c.path || "/",
+      secure: sameSite === "no_restriction" ? true : (c.secure ?? false),
+      httpOnly: c.httpOnly ?? false,
+      sameSite,
+    };
+    if (c.expirationDate) cookie.expirationDate = c.expirationDate;
+    await webviewSession.cookies.set(cookie);
+  }
+}
+
+ipcMain.handle("cookie:import", async (_event, jsonText: string) => {
+  try {
+    const cookies: any[] = JSON.parse(jsonText);
+    await injectCookies(cookies);
+    cookieStore.set("cookies", cookies);
+    return { success: true, count: cookies.length };
+  } catch (e: any) {
+    return { success: false, message: e.message };
+  }
+});
+
+ipcMain.handle("cookie:clear", () => {
+  cookieStore.set("cookies", []);
+  return { success: true };
+});
+
 // 添加崩溃处理
 app.on("render-process-gone", (event, webContents, details) => {
   console.error("❌ Render process gone:", details);
@@ -592,6 +633,18 @@ app.on("activate", () => {
 
 app.whenReady().then(async () => {
   console.log("🚀 Application started");
+
+  // 启动时自动注入已保存的 cookie
+  const savedCookies = cookieStore.get("cookies", []);
+  if (savedCookies.length) {
+    try {
+      await injectCookies(savedCookies);
+      console.log(`🍪 已自动注入 ${savedCookies.length} 个 cookie`);
+    } catch (e) {
+      console.error("❌ Cookie 自动注入失败:", e);
+    }
+  }
+
   createWindow();
 
   // 自动更新：检查 GitHub Releases 上的新版本

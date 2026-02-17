@@ -43,6 +43,14 @@
         >
           ↻
         </button>
+        <button
+          v-if="tab"
+          class="action-btn nav-btn"
+          @click="handleImportCookie"
+          title="导入 Cookie（从浏览器导出的 JSON 文件）"
+        >
+          🍪
+        </button>
       </div>
       <div class="header-actions">
         <button
@@ -72,11 +80,28 @@
         <p>选择一个应用开始使用</p>
       </div>
     </div>
+    <!-- Cookie 导入弹窗 -->
+    <NModal v-model:show="showCookieModal" preset="card" title="导入 Cookie" style="width: 500px;">
+      <p style="margin-bottom: 8px; font-size: 13px; color: #666;">
+        在 Chrome 中安装 EditThisCookie 扩展，登录目标网站后导出 Cookie，将 JSON 内容粘贴到下方：
+      </p>
+      <NInput
+        v-model:value="cookieText"
+        type="textarea"
+        placeholder='粘贴 Cookie JSON 内容（格式为 [{"name":"...","value":"...","domain":"..."}]）'
+        :rows="8"
+      />
+      <div style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
+        <NButton @click="showCookieModal = false">取消</NButton>
+        <NButton type="primary" @click="submitCookie">导入并刷新</NButton>
+      </div>
+    </NModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from "vue";
+import { NModal, NInput, NButton, useMessage } from "naive-ui";
 import { useAppStore } from "../../../store/appStore";
 import type { AppSearchConfig } from "../../../store/appStore";
 import { APP_NEW_SESSION_SELECTORS } from "../../../const/defaultConfig";
@@ -93,6 +118,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const appStore = useAppStore();
 const webviewRef = ref<HTMLElement | null>(null);
+const message = useMessage();
 
 const isActive = computed(() => appStore.getActivePaneId === props.paneId);
 
@@ -144,6 +170,39 @@ const handleRefresh = () => {
   const webview = webviewRef.value as any;
   if (webview && webview.reload) {
     webview.reload();
+  }
+};
+
+const showCookieModal = ref(false);
+const cookieText = ref("");
+
+const handleImportCookie = () => {
+  showCookieModal.value = true;
+};
+
+const submitCookie = async () => {
+  try {
+    const cookieAPI = (window as any).cookieAPI;
+    if (!cookieAPI) {
+      message.error("cookieAPI 不可用，请重启应用");
+      return;
+    }
+    if (!cookieText.value.trim()) {
+      message.warning("请粘贴 Cookie JSON 内容");
+      return;
+    }
+    const result = await cookieAPI.import(cookieText.value.trim());
+    if (result.success) {
+      message.success(`成功导入 ${result.count} 个 Cookie`);
+      showCookieModal.value = false;
+      cookieText.value = "";
+      const webview = webviewRef.value as any;
+      if (webview) webview.reload();
+    } else {
+      message.error("导入失败: " + (result.message || "未知错误"));
+    }
+  } catch (e: any) {
+    message.error("导入异常: " + e.message);
   }
 };
 
