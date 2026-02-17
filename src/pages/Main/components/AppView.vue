@@ -80,11 +80,28 @@
         <p>选择一个应用开始使用</p>
       </div>
     </div>
+    <!-- Cookie 导入弹窗 -->
+    <NModal v-model:show="showCookieModal" preset="card" title="导入 Cookie" style="width: 500px;">
+      <p style="margin-bottom: 8px; font-size: 13px; color: #666;">
+        在 Chrome 中安装 EditThisCookie 扩展，登录目标网站后导出 Cookie，将 JSON 内容粘贴到下方：
+      </p>
+      <NInput
+        v-model:value="cookieText"
+        type="textarea"
+        placeholder='粘贴 Cookie JSON 内容（格式为 [{"name":"...","value":"...","domain":"..."}]）'
+        :rows="8"
+      />
+      <div style="margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px;">
+        <NButton @click="showCookieModal = false">取消</NButton>
+        <NButton type="primary" @click="submitCookie">导入并刷新</NButton>
+      </div>
+    </NModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from "vue";
+import { NModal, NInput, NButton } from "naive-ui";
 import { useAppStore } from "../../../store/appStore";
 import type { AppSearchConfig } from "../../../store/appStore";
 import { APP_NEW_SESSION_SELECTORS } from "../../../const/defaultConfig";
@@ -155,14 +172,23 @@ const handleRefresh = () => {
   }
 };
 
-const handleImportCookie = async () => {
+const showCookieModal = ref(false);
+const cookieText = ref("");
+
+const handleImportCookie = () => {
+  showCookieModal.value = true;
+};
+
+const submitCookie = async () => {
   const cookieAPI = (window as any).cookieAPI;
-  if (!cookieAPI) return;
-  const result = await cookieAPI.import();
+  if (!cookieAPI || !cookieText.value.trim()) return;
+  const result = await cookieAPI.import(cookieText.value.trim());
   if (result.success) {
+    showCookieModal.value = false;
+    cookieText.value = "";
     const webview = webviewRef.value as any;
     if (webview) webview.reload();
-  } else if (result.message && result.message !== "已取消") {
+  } else {
     console.error("Cookie 导入失败:", result.message);
   }
 };

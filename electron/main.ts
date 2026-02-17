@@ -200,44 +200,43 @@ ipcMain.handle("prompt:search", (_event, query: string) => {
 });
 
 // ==================== Cookie 导入 ====================
-ipcMain.handle("cookie:import", async () => {
-  const result = await dialog.showOpenDialog({
-    title: "选择 Cookie JSON 文件",
-    filters: [{ name: "JSON", extensions: ["json"] }],
-    properties: ["openFile"],
-  });
+const cookieStore = new Store<{ cookies: any[] }>({
+  name: "imported-cookies",
+  defaults: { cookies: [] },
+});
 
-  if (result.canceled || !result.filePaths.length) {
-    return { success: false, message: "已取消" };
+async function injectCookies(cookies: any[]) {
+  const webviewSession = session.fromPartition("persist:webview");
+  for (const c of cookies) {
+    const cookie: Electron.CookiesSetDetails = {
+      url: `https://${c.domain?.replace(/^\./, "")}${c.path || "/"}`,
+      name: c.name,
+      value: c.value,
+      domain: c.domain,
+      path: c.path || "/",
+      secure: c.secure ?? false,
+      httpOnly: c.httpOnly ?? false,
+      sameSite: c.sameSite === "lax" ? "lax" : c.sameSite === "strict" ? "strict" : "no_restriction",
+    };
+    if (c.expirationDate) cookie.expirationDate = c.expirationDate;
+    await webviewSession.cookies.set(cookie);
   }
+}
 
+ipcMain.handle("cookie:import", async (_event, jsonText: string) => {
   try {
-    const fs = await import("node:fs/promises");
-    const raw = await fs.readFile(result.filePaths[0], "utf-8");
-    const cookies: any[] = JSON.parse(raw);
-    const webviewSession = session.fromPartition("persist:webview");
-
-    for (const c of cookies) {
-      const cookie: Electron.CookiesSetDetails = {
-        url: `https://${c.domain?.replace(/^\./, "")}${c.path || "/"}`,
-        name: c.name,
-        value: c.value,
-        domain: c.domain,
-        path: c.path || "/",
-        secure: c.secure ?? false,
-        httpOnly: c.httpOnly ?? false,
-        sameSite: c.sameSite === "lax" ? "lax" : c.sameSite === "strict" ? "strict" : "no_restriction",
-      };
-      if (c.expirationDate) {
-        cookie.expirationDate = c.expirationDate;
-      }
-      await webviewSession.cookies.set(cookie);
-    }
-
+    const cookies: any[] = JSON.parse(jsonText);
+    await injectCookies(cookies);
+    cookieStore.set("cookies", cookies);
     return { success: true, count: cookies.length };
   } catch (e: any) {
     return { success: false, message: e.message };
   }
+});
+
+ipcMain.handle("cookie:clear", () => {
+  cookieStore.set("cookies", []);
+  return { success: true };
 });
 
 // 添加崩溃处理
@@ -633,6 +632,18 @@ app.on("activate", () => {
 
 app.whenReady().then(async () => {
   console.log("🚀 Application started");
+
+  // 启动时自动注入已保存的 cookie
+  const savedCookies = cookieStore.get("cookies", []);
+  if (savedCookies.length) {
+    try {
+      await injectCookies(savedCookies);
+      console.log(`🍪 已自动注入 ${savedCookies.length} 个 cookie`);
+    } catch (e) {
+      console.error("❌ Cookie 自动注入失败:", e);
+    }
+  }
+
   createWindow();
 
   // 自动更新：检查 GitHub Releases 上的新版本
