@@ -43,6 +43,14 @@
         >
           ↻
         </button>
+        <button
+          v-if="tab"
+          class="action-btn nav-btn"
+          @click="handleImportCookie"
+          title="导入 Cookie（从浏览器导出的 JSON 文件）"
+        >
+          🍪
+        </button>
       </div>
       <div class="header-actions">
         <button
@@ -144,6 +152,18 @@ const handleRefresh = () => {
   const webview = webviewRef.value as any;
   if (webview && webview.reload) {
     webview.reload();
+  }
+};
+
+const handleImportCookie = async () => {
+  const cookieAPI = (window as any).cookieAPI;
+  if (!cookieAPI) return;
+  const result = await cookieAPI.import();
+  if (result.success) {
+    const webview = webviewRef.value as any;
+    if (webview) webview.reload();
+  } else if (result.message && result.message !== "已取消") {
+    console.error("Cookie 导入失败:", result.message);
   }
 };
 

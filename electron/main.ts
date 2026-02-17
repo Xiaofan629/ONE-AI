@@ -199,6 +199,47 @@ ipcMain.handle("prompt:search", (_event, query: string) => {
   return filtered.sort((a, b) => b.updatedAt - a.updatedAt);
 });
 
+// ==================== Cookie 导入 ====================
+ipcMain.handle("cookie:import", async () => {
+  const result = await dialog.showOpenDialog({
+    title: "选择 Cookie JSON 文件",
+    filters: [{ name: "JSON", extensions: ["json"] }],
+    properties: ["openFile"],
+  });
+
+  if (result.canceled || !result.filePaths.length) {
+    return { success: false, message: "已取消" };
+  }
+
+  try {
+    const fs = await import("node:fs/promises");
+    const raw = await fs.readFile(result.filePaths[0], "utf-8");
+    const cookies: any[] = JSON.parse(raw);
+    const webviewSession = session.fromPartition("persist:webview");
+
+    for (const c of cookies) {
+      const cookie: Electron.CookiesSetDetails = {
+        url: `https://${c.domain?.replace(/^\./, "")}${c.path || "/"}`,
+        name: c.name,
+        value: c.value,
+        domain: c.domain,
+        path: c.path || "/",
+        secure: c.secure ?? false,
+        httpOnly: c.httpOnly ?? false,
+        sameSite: c.sameSite === "lax" ? "lax" : c.sameSite === "strict" ? "strict" : "no_restriction",
+      };
+      if (c.expirationDate) {
+        cookie.expirationDate = c.expirationDate;
+      }
+      await webviewSession.cookies.set(cookie);
+    }
+
+    return { success: true, count: cookies.length };
+  } catch (e: any) {
+    return { success: false, message: e.message };
+  }
+});
+
 // 添加崩溃处理
 app.on("render-process-gone", (event, webContents, details) => {
   console.error("❌ Render process gone:", details);
