@@ -101,7 +101,7 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from "vue";
-import { NModal, NInput, NButton } from "naive-ui";
+import { NModal, NInput, NButton, useMessage } from "naive-ui";
 import { useAppStore } from "../../../store/appStore";
 import type { AppSearchConfig } from "../../../store/appStore";
 import { APP_NEW_SESSION_SELECTORS } from "../../../const/defaultConfig";
@@ -118,6 +118,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const appStore = useAppStore();
 const webviewRef = ref<HTMLElement | null>(null);
+const message = useMessage();
 
 const isActive = computed(() => appStore.getActivePaneId === props.paneId);
 
@@ -180,16 +181,28 @@ const handleImportCookie = () => {
 };
 
 const submitCookie = async () => {
-  const cookieAPI = (window as any).cookieAPI;
-  if (!cookieAPI || !cookieText.value.trim()) return;
-  const result = await cookieAPI.import(cookieText.value.trim());
-  if (result.success) {
-    showCookieModal.value = false;
-    cookieText.value = "";
-    const webview = webviewRef.value as any;
-    if (webview) webview.reload();
-  } else {
-    console.error("Cookie 导入失败:", result.message);
+  try {
+    const cookieAPI = (window as any).cookieAPI;
+    if (!cookieAPI) {
+      message.error("cookieAPI 不可用，请重启应用");
+      return;
+    }
+    if (!cookieText.value.trim()) {
+      message.warning("请粘贴 Cookie JSON 内容");
+      return;
+    }
+    const result = await cookieAPI.import(cookieText.value.trim());
+    if (result.success) {
+      message.success(`成功导入 ${result.count} 个 Cookie`);
+      showCookieModal.value = false;
+      cookieText.value = "";
+      const webview = webviewRef.value as any;
+      if (webview) webview.reload();
+    } else {
+      message.error("导入失败: " + (result.message || "未知错误"));
+    }
+  } catch (e: any) {
+    message.error("导入异常: " + e.message);
   }
 };
 
